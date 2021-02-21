@@ -1,5 +1,5 @@
+use std::collections::HashMap;
 use std::rc::Rc;
-use std::{borrow::Borrow, collections::HashMap};
 
 type Name = String;
 
@@ -139,9 +139,9 @@ impl ToString for Type {
                     format!("{}[{}]", str_ty, str_ty_args)
                 }
                 Type::Arrow(params, ret) => {
-                    let str_arrow_ty = match params[..].borrow() {
+                    let str_arrow_ty = match &params[..] {
                         [param] => {
-                            let str_param = f(name_env, true, param.borrow());
+                            let str_param = f(name_env, true, &param);
                             let str_ret = f(name_env, false, ret);
                             format!("{} -> {}", str_param, str_ret)
                         }
