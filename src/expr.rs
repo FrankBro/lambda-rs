@@ -1,9 +1,10 @@
 use std::collections::HashMap;
 use std::rc::Rc;
 
-type Name = String;
+pub type Name = String;
 
-enum Expr {
+pub enum Expr {
+    Int(i64),
     Var(Name),
     Call(Box<Expr>, Vec<Expr>),
     Fun(Vec<Name>, Box<Expr>),
@@ -14,6 +15,7 @@ impl ToString for Expr {
     fn to_string(&self) -> String {
         fn f(is_simple: bool, expr: &Expr) -> String {
             match expr {
+                Expr::Int(i) => format!("{}", i),
                 Expr::Var(name) => name.clone(),
                 Expr::Call(fun, args) => {
                     let str_fun = f(true, fun);
@@ -76,17 +78,20 @@ fn test_expr_to_string() {
     );
 }
 
-type Id = i64;
-type Level = i64;
+pub type Id = usize;
+pub type Level = i64;
 
-enum Type {
+#[derive(PartialEq)]
+pub enum Type {
     Const(Name),
     App(Box<Type>, Vec<Type>),
     Arrow(Vec<Type>, Box<Type>),
-    Var(TypeVar),
+    Var(Id),
 }
 
-enum TypeVar {
+/*
+#[derive(PartialEq)]
+pub enum TypeVar {
     Unbound(Id, Level),
     Link(Rc<Type>),
     Generic(Id),
@@ -208,3 +213,5 @@ fn test_type_to_string() {
         "int"
     );
 }
+
+*/
