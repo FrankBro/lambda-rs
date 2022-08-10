@@ -116,15 +116,20 @@ fn parse_expr_inner<T: Iterator<Item = Token>>(tokens: &mut Peekable<T>) -> Resu
     Ok(expr)
 }
 
+fn check_tokens_left<T: Iterator<Item = Token>>(tokens: &mut Peekable<T>) -> Result<()> {
+    let tokens_left: Vec<Token> = tokens.collect();
+    if !tokens_left.is_empty() {
+        return Err(Error::TokensLeft(tokens_left));
+    }
+    Ok(())
+}
+
 pub fn parse_expr(input: &str) -> Result<Expr> {
     let mut tokens = lexer::lex(input).into_iter().peekable();
 
     let expr = parse_expr_inner(&mut tokens)?;
 
-    let tokens_left: Vec<Token> = tokens.collect();
-    if !tokens_left.is_empty() {
-        return Err(Error::TokensLeft(tokens_left));
-    }
+    check_tokens_left(&mut tokens)?;
     Ok(expr)
 }
 
@@ -220,11 +225,7 @@ pub fn parse_ty(input: &str) -> Result<(Vec<String>, Type)> {
 
     let ty = parse_ty_inner(&mut tokens)?;
 
-    let tokens_left: Vec<Token> = tokens.collect();
-    if !tokens_left.is_empty() {
-        return Err(Error::TokensLeft(tokens_left));
-    }
-
+    check_tokens_left(&mut tokens)?;
     Ok((vars, ty))
 }
 
