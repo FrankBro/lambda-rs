@@ -72,18 +72,20 @@ fn parse_var_expr<T: Iterator<Item = Token>>(tokens: &mut Peekable<T>) -> Result
     Ok(Expr::Var(var))
 }
 
-fn parse_call_expr<T: Iterator<Item = Token>>(
+fn parse_list<O, T: Iterator<Item = Token>>(
     tokens: &mut Peekable<T>,
-    fn_expr: Expr,
-) -> Result<Expr> {
-    expect_token(Token::LParen, tokens)?;
-    let mut args = Vec::new();
+    left: Token,
+    right: Token,
+    producer: &dyn Fn(&mut Peekable<T>) -> Result<O>,
+) -> Result<Vec<O>> {
+    expect_token(left, tokens)?;
+    let mut xs: Vec<O> = Vec::new();
     loop {
-        let arg = parse_expr_inner(tokens)?;
-        args.push(arg);
+        let x = producer(tokens)?;
+        xs.push(x);
         match tokens.next() {
             Some(Token::Comma) => (),
-            Some(Token::RParen) => {
+            Some(token) if token == right => {
                 break;
             }
             Some(token) => {
@@ -94,6 +96,14 @@ fn parse_call_expr<T: Iterator<Item = Token>>(
             }
         }
     }
+    Ok(xs)
+}
+
+fn parse_call_expr<T: Iterator<Item = Token>>(
+    tokens: &mut Peekable<T>,
+    fn_expr: Expr,
+) -> Result<Expr> {
+    let args = parse_list(tokens, Token::LParen, Token::RParen, &parse_expr_inner)?;
     Ok(Expr::Call(Box::new(fn_expr), args))
 }
 
@@ -134,24 +144,7 @@ pub fn parse_expr(input: &str) -> Result<Expr> {
 }
 
 fn parse_paren_ty<T: Iterator<Item = Token>>(tokens: &mut Peekable<T>) -> Result<Type> {
-    expect_token(Token::LParen, tokens)?;
-    let mut ty_args = Vec::new();
-    loop {
-        let ty_arg = parse_ty_inner(tokens)?;
-        ty_args.push(ty_arg);
-        match tokens.next() {
-            Some(Token::Comma) => (),
-            Some(Token::RParen) => {
-                break;
-            }
-            Some(token) => {
-                return Err(Error::UnexpectedToken(token));
-            }
-            None => {
-                return Err(Error::NoMoreTokens);
-            }
-        }
-    }
+    let mut ty_args = parse_list(tokens, Token::LParen, Token::RParen, &parse_ty_inner)?;
     if ty_args.len() == 1 {
         match tokens.peek() {
             Some(Token::Arrow) => (),
@@ -182,24 +175,7 @@ fn parse_ty_inner<T: Iterator<Item = Token>>(tokens: &mut Peekable<T>) -> Result
     }?;
 
     if let Some(Token::LBracket) = tokens.peek() {
-        expect_token(Token::LBracket, tokens)?;
-        let mut ty_args = Vec::new();
-        loop {
-            let ty_arg = parse_ty_inner(tokens)?;
-            ty_args.push(ty_arg);
-            match tokens.next() {
-                Some(Token::Comma) => (),
-                Some(Token::RBracket) => {
-                    break;
-                }
-                Some(token) => {
-                    return Err(Error::UnexpectedToken(token));
-                }
-                None => {
-                    return Err(Error::NoMoreTokens);
-                }
-            }
-        }
+        let ty_args = parse_list(tokens, Token::LBracket, Token::RBracket, &parse_ty_inner)?;
         ty = Type::App(Box::new(ty), ty_args);
     }
 
